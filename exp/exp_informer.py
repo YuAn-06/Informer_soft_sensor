@@ -6,7 +6,7 @@ from utils.tools import EarlyStopping, adjust_learning_rate
 from utils.metrics import metric
 
 import numpy as np
-
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from torch import optim
@@ -69,6 +69,7 @@ class Exp_Informer(Exp_Basic):
             'ECL':Dataset_Custom,
             'Solar':Dataset_Custom,
             'custom':Dataset_Custom,
+            'SRU':Dataset_Custom
         }
         Data = data_dict[self.args.data]
         timeenc = 0 if args.embed!='timeF' else 1
@@ -126,6 +127,7 @@ class Exp_Informer(Exp_Basic):
         train_data, train_loader = self._get_data(flag = 'train')
         vali_data, vali_loader = self._get_data(flag = 'val')
         test_data, test_loader = self._get_data(flag = 'test')
+        print(test_data)
 
         path = os.path.join(self.args.checkpoints, setting)
         if not os.path.exists(path):
@@ -154,6 +156,7 @@ class Exp_Informer(Exp_Basic):
                 model_optim.zero_grad()
                 pred, true = self._process_one_batch(
                     train_data, batch_x, batch_y, batch_x_mark, batch_y_mark)
+                # print(true)
                 loss = criterion(pred, true)
                 train_loss.append(loss.item())
                 
@@ -208,23 +211,29 @@ class Exp_Informer(Exp_Basic):
 
         preds = np.array(preds)
         trues = np.array(trues)
+
+
+        print(trues)
         print('test shape:', preds.shape, trues.shape)
         preds = preds.reshape(-1, preds.shape[-2], preds.shape[-1])
         trues = trues.reshape(-1, trues.shape[-2], trues.shape[-1])
         print('test shape:', preds.shape, trues.shape)
-
+        y_pred = test_data.inverse_transform(preds)
+        y_true = test_data.inverse_transform(trues)
         # result save
         folder_path = './results/' + setting +'/'
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
-        mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print('mse:{}, mae:{}'.format(mse, mae))
-
+        mae, mse, rmse, mape, mspe, r2 = metric(y_true, y_pred)
+        print('mse:{}, mae:{}, r2:{}'.format(mse, mae,r2))
+        plt.plot(y_pred.squeeze(),label='Pred')
+        plt.plot(y_true.squeeze(),label='trues')
         np.save(folder_path+'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
         np.save(folder_path+'pred.npy', preds)
         np.save(folder_path+'true.npy', trues)
-
+        plt.legend()
+        plt.show()
         return
 
     def predict(self, setting, load=False):
