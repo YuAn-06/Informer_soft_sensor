@@ -227,11 +227,12 @@ class Dataset_Custom(Dataset):
             cols=self.cols.copy()
             cols.remove(self.target)
         else:
+
             cols = list(df_raw.columns); cols.remove(self.target); cols.remove('date')
         df_raw = df_raw[['date']+cols+[self.target]]
 
         num_train = int(len(df_raw)*0.7)
-        num_test = int(len(df_raw)*0.2)
+        num_test = int(len(df_raw)*0.25)
         num_vali = len(df_raw) - num_train - num_test
         border1s = [0, num_train-self.seq_len, len(df_raw)-num_test-self.seq_len]
         border2s = [num_train, num_train+num_vali, len(df_raw)]
@@ -248,6 +249,7 @@ class Dataset_Custom(Dataset):
             train_data = df_data[border1s[0]:border2s[0]]
             self.scaler.fit(train_data.values)
             data = self.scaler.transform(df_data.values)
+            # print(data)
         else:
             data = df_data.values
             
@@ -258,8 +260,10 @@ class Dataset_Custom(Dataset):
         self.data_x = data[border1:border2]
         if self.inverse:
             self.data_y = df_data.values[border1:border2]
+
         else:
             self.data_y = data[border1:border2]
+
         self.data_stamp = data_stamp
     
     def __getitem__(self, index):
